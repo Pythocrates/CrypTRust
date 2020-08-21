@@ -5,7 +5,8 @@
 //
 
 use std::path::PathBuf;
-use git2::{MergeOptions, Repository};
+use git2::{Cred, MergeOptions, Repository, RemoteCallbacks, FetchOptions};
+use git2::build::RepoBuilder;
 
 
 pub struct Store {
@@ -28,6 +29,7 @@ impl Store {
         &self.repo_path
     }
 
+    // based on https://stackoverflow.com/a/58022401
     fn get_remote(&self) {
         let repo = Repository::open(self.path()).expect("Error opening local repository.");
         let ours = repo.head().expect("Failed getting HEAD.").resolve().expect("Failed resolving HEAD.").peel_to_commit().expect("Failed peeling reference");
@@ -37,13 +39,21 @@ impl Store {
         //repo.find_remote("origin").expect("No remote origin found.").fetch();
     }
 
-    // based on https://stackoverflow.com/a/58022401
-    fn get_remote_2(&self) {
-        "AA";
-    }
-
     pub fn clone_repo(url: &str, path: &PathBuf) -> Self {
-        Repository::clone(url, path).expect("Failed to clone.");
+        let mut builder = RepoBuilder::new();
+        let mut callbacks = RemoteCallbacks::new();
+        let mut fetch_options = FetchOptions::new();
+
+        callbacks.credentials(|_, _, _| {
+            let credentials = Cred::ssh_key_from_agent("git").expect("Failed getting ssh key from agent.");
+            Ok(credentials)
+        });
+
+        fetch_options.remote_callbacks(callbacks);
+
+        builder.fetch_options(fetch_options);
+
+        let repo = builder.clone(url, path).expect("Failed cloning repository.");
         Self::new(path)
     }
 
@@ -57,9 +67,9 @@ impl Store {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+    use super::*;
 
-	#[test]
-	fn it_works() {
-	}
+    #[test]
+    fn it_works() {
+    }
 }
