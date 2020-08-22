@@ -24,6 +24,9 @@ fn main() {
             SubCommand::with_name("select-store")
             .arg(Arg::with_name("name").required(true).takes_value(true))
             )
+        .subcommand(
+            SubCommand::with_name("show")
+            )
         ;
     let matches = app.get_matches();
 
@@ -50,7 +53,10 @@ fn main() {
         ("list-stores",  _) => {
             manager.list_stores()
         },
-        ("show",  Some(sub_matches)) => {},
+        ("show",  _) => {
+            manager.current_store().show()
+
+        },
         ("edit",  Some(sub_matches)) => {},
         ("add-user",  Some(sub_matches)) => {},
         ("list-users",  Some(sub_matches)) => {},

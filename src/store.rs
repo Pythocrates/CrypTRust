@@ -5,19 +5,43 @@
 //
 
 use std::path::PathBuf;
+use edit::edit_file;
 use git2::{Cred, MergeOptions, Repository, RemoteCallbacks, FetchOptions};
 use git2::build::RepoBuilder;
 
 
+struct Secret {
+    path: PathBuf,
+    user_keys_path: PathBuf,
+}
+
+impl Secret {
+    pub fn show(&self) {
+        edit_file(&self.path).ok();
+    }
+}
+
+
 pub struct Store {
     repo_path: PathBuf,
+    //repo,
+    user_keys_path: PathBuf,
+    secret: Secret,
 }
 
 impl Store {
     pub fn new(path: &PathBuf) -> Self {
+        let repo_path = path.canonicalize().expect("Error getting the canonical path.");
+        let user_keys_path = repo_path.join("user-keys");
         Self {
             //repo_path: PathBuf::from(path),
-            repo_path: path.canonicalize().expect("Error getting the canonical path."),
+            secret: Secret{
+                path: repo_path.join("keys.asc"),
+                user_keys_path: user_keys_path.clone(),
+            },
+            repo_path,
+            // TODO: repo
+            user_keys_path,
         }
     }
 
@@ -37,6 +61,17 @@ impl Store {
         let _index = repo.merge_commits(&ours, &theirs, Some(&MergeOptions::new()));
 
         //repo.find_remote("origin").expect("No remote origin found.").fetch();
+    }
+
+    pub fn show(&self) {
+        self.get_remote();
+
+        // TODO: decrypt and display
+        // Python:
+        // with self._secret.decrypted as clear_file:
+        //     run(['less', clear_file], check=True)
+        self.secret.show();
+
     }
 
     pub fn clone_repo(url: &str, path: &PathBuf) -> Self {
